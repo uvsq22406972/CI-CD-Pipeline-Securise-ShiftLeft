@@ -26,5 +26,10 @@ WORKDIR /app/app
 #S'assurer que le dossier existe
 RUN mkdir -p instance
 
+RUN useradd -m -u 10001 non-root \
+  && chown -R non-root:non-root /app
+
+USER non-root
+
 EXPOSE 8080
-USER non-root CMD ["python", "app.py"]
+CMD ["python", "app.py"]
