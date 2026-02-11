@@ -58,18 +58,17 @@ jobs:
 
       - name: Trivy image (gate CRITICAL + rapport)
         run: |
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$PWD/rapports:/rapports" \
-            aquasec/trivy:0.5x.x image \
-            --severity HIGH,CRITICAL \
-            --format json -o /rapports/trivy-image.json \
-            flaskauth:ci
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            aquasec/trivy:0.5x.x image \
-            --severity CRITICAL --exit-code 1 \
-            flaskauth:ci
+          docker run --rm \ 
+          -v /var/run/docker.sock:/var/run/docker.sock \ 
+          -v "$PWD/rapports:/rapports" \ 
+          aquasec/trivy:0.5x.x image \ 
+          --severity HIGH,CRITICAL \ 
+          --format json -o /rapports/trivy-image.json \ 
+          flaskauth:ci docker run --rm \ 
+          -v /var/run/docker.sock:/var/run/docker.sock \ 
+          aquasec/trivy:0.5x.x image \ 
+          --severity CRITICAL --exit-code 1 \ 
+          flaskauth:ci
 
       - name: Create docker network
         run: docker network create zapnet || true
