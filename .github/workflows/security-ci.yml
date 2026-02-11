@@ -19,6 +19,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: "pip"
 
       - name: Installer pipx
         run: |
@@ -37,7 +38,7 @@ jobs:
 
       - name: SAST - Semgrep (rapport)
         run: |
-          semgrep --config p/default --config .semgrep.yml --json -o rapports/semgrep.json . || true
+          semgrep --metrics=off --config p/default --config .semgrep.yml --json -o rapports/semgrep.json . || true
 
       - name: SAST - Semgrep (gate ERROR)
         run: |
@@ -55,19 +56,19 @@ jobs:
         run: |
           docker build --no-cache -t flaskauth:ci .
 
-      - name: Debug image user (verify non-root exists)
-        run: |
-          docker run --rm --entrypoint sh flaskauth:ci -lc "grep -n '^non-root:' /etc/passwd || (echo 'non-root missing' && exit 1)"
-          docker run --rm --entrypoint sh flaskauth:ci -lc "id non-root && echo OK"
-
       - name: Trivy image (gate CRITICAL + rapport)
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
             -v "$PWD/rapports:/rapports" \
-            aquasec/trivy:latest image \
-            --severity CRITICAL --exit-code 1 \
+            aquasec/trivy:0.5x.x image \
+            --severity HIGH,CRITICAL \
             --format json -o /rapports/trivy-image.json \
+            flaskauth:ci
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            aquasec/trivy:0.5x.x image \
+            --severity CRITICAL --exit-code 1 \
             flaskauth:ci
 
       - name: Create docker network
@@ -97,18 +98,6 @@ jobs:
             docker logs --tail=200 flaskauth || true
             exit 1
           fi
-
-
-      - name: Debug - afficher le workflow utilisé
-        run: |
-          echo "SHA: $GITHUB_SHA"
-          sed -n '1,220p' .github/workflows/security-ci.yml
-
-      - name: Debug - logs + check /login
-        if: always()
-        run: |
-          docker logs --tail=200 flaskauth || true
-          curl -i http://localhost:8080/login || true
 
       - name: DAST - OWASP ZAP baseline (gate FAIL only)
         run: |
