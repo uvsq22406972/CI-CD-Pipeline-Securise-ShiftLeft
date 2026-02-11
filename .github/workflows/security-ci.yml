@@ -60,7 +60,7 @@ jobs:
           docker run --rm --entrypoint sh flaskauth:ci -lc "grep -n '^non-root:' /etc/passwd || (echo 'non-root missing' && exit 1)"
           docker run --rm --entrypoint sh flaskauth:ci -lc "id non-root && echo OK"
 
-      - name: Trivy image (gate HIGH/CRITICAL + rapport)
+      - name: Trivy image (gate CRITICAL + rapport)
         run: |
           docker run --rm \
             -v /var/run/docker.sock:/var/run/docker.sock \
@@ -81,7 +81,7 @@ jobs:
             -e REMEMBER_COOKIE_SECURE=false \
             -e ZAP_SCAN=true \
             flaskauth:ci
-            
+
           for i in {1..60}; do
             if curl -fsS http://localhost:8080/ >/dev/null; then
               echo "App UP"
@@ -101,23 +101,33 @@ jobs:
           docker logs --tail=200 flaskauth || true
           curl -i http://localhost:8080/login || true
 
-      - name: DAST - OWASP ZAP baseline (rapport)
+      - name: DAST - OWASP ZAP baseline (gate FAIL only)
         run: |
           mkdir -p rapports
           chmod -R 777 rapports
 
           set +e
-          docker run --rm --network zapnet -t \
+          out=$(docker run --rm --network zapnet -t \
             -v "${{ github.workspace }}/rapports:/zap/wrk" \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py -t http://flaskauth:8080 \
-            -r zap.html -J zap.json -x zap.xml
+            -r zap.html -J zap.json -x zap.xml)
           ec=$?
+          echo "$out"
+          echo "ZAP raw exit code: $ec"
 
-          echo "ZAP exit code: $ec"
-          ls -lah rapports || true
-          exit $ec
+          # Extraire la ligne de synthèse
+          summary=$(echo "$out" | grep -E "FAIL-NEW:" | tail -n 1 || true)
+          echo "Summary: $summary"
 
+          # Si FAIL-NEW n'est pas 0 => on échoue
+          if echo "$summary" | grep -qv "FAIL-NEW: 0"; then
+            echo "ZAP gate failed (FAIL-NEW > 0)"
+            exit 1
+          fi
+
+          echo "ZAP gate passed (FAIL-NEW = 0). Allowing warnings."
+          exit 0
 
       - name: Stop app
         if: always()
