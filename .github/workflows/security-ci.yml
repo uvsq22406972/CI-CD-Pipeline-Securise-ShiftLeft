@@ -82,13 +82,21 @@ jobs:
             sleep 2
           done
 
+      - name: Debug - afficher le workflow utilisé
+        run: |
+          echo "SHA: $GITHUB_SHA"
+          sed -n '1,220p' .github/workflows/security-ci.yml
+          
       - name: DAST - OWASP ZAP baseline (rapport)
         run: |
+          ls -la rapports
+
           docker run --rm --network host -t \
-            -v "$PWD/rapports:/zap/wrk" \
+            -v "${{ github.workspace }}/rapports:/zap/wrk" \
             ghcr.io/zaproxy/zaproxy:stable \
             zap-baseline.py -t http://localhost:8080 \
             -r /zap/wrk/zap.html -J /zap/wrk/zap.json -x /zap/wrk/zap.xml
+
 
 
       - name: Stop app
