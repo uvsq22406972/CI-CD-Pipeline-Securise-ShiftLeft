@@ -1,0 +1,13 @@
+rules: []
+
+exclude:
+  - .venv/
+  - venv/
+  - __pycache__/
+  - node_modules/
+  - dist/
+  - build/
+  - .git/
+  - rapports/
+  - instance/
+  - "*.min.js"
