@@ -70,17 +70,20 @@ jobs:
             --format json -o /rapports/trivy-image.json \
             flaskauth:ci
 
+      - name: Create docker network
+        run: docker network create zapnet || true
+
       - name: Lancer l'app (docker run)
         run: |
           docker rm -f flaskauth >/dev/null 2>&1 || true
-          docker run -d --name flaskauth -p 8080:8080 flaskauth:ci
+          docker run -d --name flaskauth --network zapnet -p 8080:8080 flaskauth:ci
           for i in {1..60}; do
             if curl -fsS http://localhost:8080/ >/dev/null; then
               echo "App UP"
               break
             fi
             sleep 2
-          done
+           done
 
       - name: Debug - afficher le workflow utilisé
         run: |
@@ -98,11 +101,17 @@ jobs:
           mkdir -p rapports
           chmod -R 777 rapports
 
-          docker run --rm --network host -t \
+          set +e
+          docker run --rm --network zapnet -t \
             -v "${{ github.workspace }}/rapports:/zap/wrk" \
             ghcr.io/zaproxy/zaproxy:stable \
-            zap-baseline.py -t http://localhost:8080 \
+            zap-baseline.py -t http://flaskauth:8080 \
             -r zap.html -J zap.json -x zap.xml
+          ec=$?
+
+          echo "ZAP exit code: $ec"
+          ls -lah rapports || true
+          exit $ec
 
 
       - name: Stop app
