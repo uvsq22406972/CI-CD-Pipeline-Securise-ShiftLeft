@@ -81,14 +81,23 @@ jobs:
             -e REMEMBER_COOKIE_SECURE=false \
             -e ZAP_SCAN=true \
             flaskauth:ci
+            
 
+          ok=0
           for i in {1..60}; do
             if curl -fsS http://localhost:8080/ >/dev/null; then
               echo "App UP"
+              ok=1
               break
             fi
             sleep 2
-           done
+          done
+          if [ "$ok" -ne 1 ]; then
+            echo "App did not start in time"
+            docker logs --tail=200 flaskauth || true
+            exit 1
+          fi
+
 
       - name: Debug - afficher le workflow utilisé
         run: |
