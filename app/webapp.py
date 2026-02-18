@@ -127,7 +127,15 @@ def create_app():
     configure_logging(app)
     engine = create_engine(app.config["DB_URL"], future=True)
     app.engine = engine
-    init_db(engine)
+
+    with engine.begin() as conn:
+        conn.exec_driver_sql("CREATE TABLE IF NOT EXISTS __db_init_lock (id INTEGER PRIMARY KEY)")
+    
+    try:
+        init_db(engine)
+    except Exception as e:
+        if "already exists" not in str(e).lower():
+            raise
     
     csrf = CSRFProtect()
     csrf.init_app(app)
@@ -146,7 +154,14 @@ def create_app():
     )
 
     #Limitation du nombre de requêtes par IP (anti brute-force)
-    limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day", "50 per hour"])
+    limiter = Limiter(
+    key_func=get_remote_address,
+    app=app,
+    storage_uri=app.config["RATELIMIT_STORAGE_URI"],
+    default_limits=["200 per day", "50 per hour"],
+    enabled=app.config.get("RATELIMIT_ENABLED", True),
+    )
+
 
     #Gestionnaire d'authentification Flask-Login
     login_manager = LoginManager()
@@ -185,8 +200,6 @@ def create_app():
     @click.option("--password", default=None, help="Mot de passe de l'admin (sinon prompt)")
     def create_admin(email, password):
         """Créer un compte admin via CLI (provisioning/dev)."""
-        init_db(engine)
-
         #Email
         if not email:
             email = click.prompt("Email", type=str).strip().lower()
@@ -313,14 +326,6 @@ def create_app():
 
 #Lancement direct en mode développement
 app = create_app()
-
-limiter = Limiter(
-    key_func=get_remote_address,
-    app=app,
-    storage_uri=app.config["RATELIMIT_STORAGE_URI"],
-    default_limits=["200 per day", "50 per hour"],
-    enabled=app.config.get("RATELIMIT_ENABLED", True),
-)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=False)
