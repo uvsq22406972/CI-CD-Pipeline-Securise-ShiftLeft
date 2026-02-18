@@ -26,6 +26,8 @@ from wtforms.validators import DataRequired, Email, Length, EqualTo
 from flask_wtf.csrf import CSRFProtect
 from functools import wraps
 from flask import abort
+from app.setup_log import configure_logging
+
 
 from flask_login import (
     LoginManager,
@@ -122,6 +124,7 @@ def create_app():
     app = Flask(__name__)
     env = os.getenv("APP_ENV", "dev").lower()
     app.config.from_object(ProdConfig if env == "prod" else DevConfig)
+    configure_logging(app)
     engine = create_engine(app.config["DB_URL"], future=True)
     app.engine = engine
     init_db(engine)

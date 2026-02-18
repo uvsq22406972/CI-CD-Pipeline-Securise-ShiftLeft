@@ -34,6 +34,11 @@ class BaseConfig:
     #Limitation
     RATELIMIT_STORAGE_URI = os.getenv("RATELIMIT_STORAGE_URI", "memory://")
     RATELIMIT_ENABLED = env_bool("RATELIMIT_ENABLED", True)
+    
+    #Log
+    LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
+    LOG_JSON = env_bool("LOG_JSON", False)
+
 
 
 class DevConfig(BaseConfig):

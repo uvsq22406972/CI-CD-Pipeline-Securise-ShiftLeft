@@ -12,7 +12,7 @@ services:
       - REMEMBER_COOKIE_SECURE=false
       - WTF_CSRF_SSL_STRICT=false
       - GUNICORN_CMD_ARGS=
-    command: ["gunicorn", "-w", "2", "-b", "0.0.0.0:8080", "app.wsgi:app"]
+    command: ["gunicorn","-w","2","-b","0.0.0.0:8080","--access-logfile","-","--error-logfile","-","app.wsgi:app"]
     volumes: 
       - ./app:/app/app/app
       - ./instance:/app/app/instance
