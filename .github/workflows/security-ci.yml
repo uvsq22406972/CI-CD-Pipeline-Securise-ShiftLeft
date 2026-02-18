@@ -18,7 +18,6 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          with:
           python-version: "3.12"
           cache: "pip"
 
@@ -75,11 +74,14 @@ jobs:
         run: |
           docker rm -f flaskauth >/dev/null 2>&1 || true
           docker run -d --name flaskauth --network zapnet -p 8080:8080 \
+            -e APP_ENV=dev \
+            -e SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            -e DB_URL="sqlite:///instance/app.db" \
+            -e RATELIMIT_STORAGE_URI="memory://" \
             -e SESSION_COOKIE_SECURE=false \
             -e REMEMBER_COOKIE_SECURE=false \
-            -e ZAP_SCAN=true \
+            -e WTF_CSRF_SSL_STRICT=false \
             flaskauth:ci
-            
 
           ok=0
           for i in {1..60}; do
