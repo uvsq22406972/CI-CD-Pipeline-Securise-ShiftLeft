@@ -69,6 +69,14 @@ jobs:
 
       - name: Create docker network
         run: docker network create zapnet || true
+        
+      - name: Check SECRET_KEY exists
+        run: |
+          if [ -z "${{ secrets.SECRET_KEY }}" ]; then
+            echo "SECRET_KEY is missing in GitHub Secrets"
+            exit 1
+          fi
+          echo "SECRET_KEY loaded"
 
       - name: Lancer l'app (docker run)
         run: |
